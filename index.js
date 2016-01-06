@@ -4,13 +4,13 @@ var pg = require('pg');
 var _ = require("lodash");
 var fs = require("fs");
 
-var bucketName = 'test-bucket';
-var destObjectName = "test-ext.log";
-var dsn = "tcp://USERNAME:PASSWORD@END_POINT:PORT/DBNAME";
+var bucketName = '';
+var destObjectName = "";
 
+var dsn = "tcp://USERNAME:PASSWORD@END_POINT:PORT/DBNAME";
 var awsAccessKeyId = "";
 var awsAccessSecret = "";
-var s3Region = "ap-northeast-1";
+var s3Region = "";
 
 var client = new pg.Client(dsn);
 client.connect();
@@ -44,16 +44,19 @@ exports.handler = function(event, context) {
       client.query('BEGIN', function(err, result) {
         if(err){
           console.log("ERROR");
-          return rollback(client)
+          rollback(client)
+          context.done(err, "Redshift BEGIN ERROR");
+          return;
         };
         console.log(copy);
         client.query(copy, function(err, result) {
           if(err){
-            console.log("COPY ERROR");
-            console.log(err);
-            return rollback(client);
+            rollback(client);
+            context.done(err, "Redshift COPY ERROR");
+            return;
           }
           client.query("COMMIT;", client.end.bind(client));
+          context.done(null, '');
         });
       });
     });
